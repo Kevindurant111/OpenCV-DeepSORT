@@ -25,11 +25,7 @@ const double KalmanFilter::chi2inv95[10] = {
     15.507,
     16.919};
 
-KalmanFilter::KalmanFilter()
-{
-    int ndim = 4;
-    _update_mat = Eigen::MatrixXf::Identity(4, 8); //measurementMatrix
-
+KalmanFilter::KalmanFilter() {
     this->_std_weight_position = 1. / 20;
     this->_std_weight_velocity = 1. / 160;
 
@@ -55,8 +51,7 @@ KalmanFilter::~KalmanFilter() {
     delete opencv_kf;
 }
 
-KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement)
-{
+KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement) {
     DETECTBOX mean_pos = measurement;
     DETECTBOX mean_vel;
     for (int i = 0; i < 4; i++)
@@ -86,8 +81,7 @@ KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement)
     return std::make_pair(mean, var);
 }
 
-void KalmanFilter::predict(KAL_MEAN &mean, KAL_COVA &covariance)
-{
+void KalmanFilter::predict(KAL_MEAN &mean, KAL_COVA &covariance) {
     float std_pos = _std_weight_position * mean(3) * _std_weight_position * mean(3);
     float std_vel = _std_weight_velocity * mean(3) * _std_weight_velocity * mean(3);
     opencv_kf->processNoiseCov = (cv::Mat_<float>(8, 8) << std_pos, 0, 0, 0, 0, 0, 0, 0,
@@ -123,8 +117,7 @@ KAL_DATA
 KalmanFilter::update(
     const KAL_MEAN &mean,
     const KAL_COVA &covariance,
-    const DETECTBOX &measurement)
-{
+    const DETECTBOX &measurement) {
     cv::Mat measurement_(4, 1, CV_32F);
     // 将Eigen矩阵的数据复制到cv::Mat
     for (int i = 0; i < measurement_.rows; i++) {
