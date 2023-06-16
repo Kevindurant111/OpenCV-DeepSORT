@@ -128,17 +128,52 @@ Eigen::VectorXf NearNeighborDisMetric::_nneuclidean_distance(const FEATURESS& x,
     return res;
 }
 
-Eigen::MatrixXf NearNeighborDisMetric::_pdist(const FEATURESS& x, const FEATURESS& y) {
-    int len1 = x.rows(), len2 = y.rows();
+Eigen::MatrixXf NearNeighborDisMetric::_pdist(const FEATURESS& _x, const FEATURESS& _y) {
+    cv::Mat x(_x.rows(), _x.cols(), CV_32F), y(_y.rows(), _y.cols(), CV_32F);
+    for(int i = 0; i < _x.rows(); i++) {
+        for(int j = 0; j < _x.cols(); j++) {
+            x.at<float>(i, j) = _x(i, j);
+        }
+    }
+    for(int i = 0; i < _y.rows(); i++) {
+        for(int j = 0; j < _y.cols(); j++) {
+            y.at<float>(i, j) = _y(i, j);
+        }
+    }
+
+    int len1 = x.rows, len2 = y.rows;
     if (len1 == 0 || len2 == 0) {
         return Eigen::MatrixXf::Zero(len1, len2);
     }
-    MatrixXf res = x * y.transpose() * -2;
-    res = res.colwise() + x.rowwise().squaredNorm();
-    res = res.rowwise() + y.rowwise().squaredNorm().transpose();
-    res = res.array().max(MatrixXf::Zero(res.rows(), res.cols()).array());
-    return res;
+
+    cv::Mat res;
+    cv::gemm(x, y.t(), -2, cv::Mat(), 0, res, cv::GEMM_1_T);  // 矩阵乘法和加法
+    cv::reduce(x.mul(x), res, 1, cv::REDUCE_SUM);            // 每行的平方和
+    res = cv::repeat(res, 1, len2);
+    cv::reduce(y.mul(y), res, 1, cv::REDUCE_SUM);            // 每列的平方和
+    res = cv::repeat(res.t(), len1, 1);
+    cv::max(res, cv::Mat::zeros(res.rows, res.cols, CV_32F), res);  // 逐元素最大值
+    MatrixXf res_;
+    for(int i = 0; i < res.rows; i++) {
+        for(int j = 0; j < res.cols; j++) {
+            res_(i, j) = res.at<float>(i, j);
+        }
+    }   
+
+    return res_;
 }
+
+// Eigen::MatrixXf NearNeighborDisMetric::_pdist(const FEATURESS& x, const FEATURESS& y) {
+//     int len1 = x.rows(), len2 = y.rows();
+//     if (len1 == 0 || len2 == 0) {
+//         return Eigen::MatrixXf::Zero(len1, len2);
+//     }
+//     MatrixXf res = x * y.transpose() * -2;
+//     res = res.colwise() + x.rowwise().squaredNorm();
+//     res = res.rowwise() + y.rowwise().squaredNorm().transpose();
+//     res = res.array().max(MatrixXf::Zero(res.rows(), res.cols()).array());
+//     return res;
+// }
 
 Eigen::MatrixXf NearNeighborDisMetric::_cosine_distance(const FEATURESS& a,
                                                         const FEATURESS& b,
