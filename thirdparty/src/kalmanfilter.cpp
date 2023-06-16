@@ -156,22 +156,55 @@ KalmanFilter::update(
     const KAL_COVA &covariance,
     const DETECTBOX &measurement)
 {
-    KAL_HDATA pa = project(mean, covariance);
-    KAL_HMEAN projected_mean = pa.first;
-    KAL_HCOVA projected_cov = pa.second;
+    // KAL_HDATA pa = project(mean, covariance);
+    // KAL_HMEAN projected_mean = pa.first;
+    // KAL_HCOVA projected_cov = pa.second;
 
-    // chol_factor, lower =
-    // scipy.linalg.cho_factor(projected_cov, lower=True, check_finite=False)
-    // kalmain_gain =
-    // scipy.linalg.cho_solve((cho_factor, lower),
-    // np.dot(covariance, self._upadte_mat.T).T,
-    // check_finite=False).T
-    Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
-    Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
-    Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean;                // eg.1x4
-    auto tmp = innovation * (kalman_gain.transpose());
-    KAL_MEAN new_mean = (mean.array() + tmp.array()).matrix();
-    KAL_COVA new_covariance = covariance - kalman_gain * projected_cov * (kalman_gain.transpose());
+    // // chol_factor, lower =
+    // // scipy.linalg.cho_factor(projected_cov, lower=True, check_finite=False)
+    // // kalmain_gain =
+    // // scipy.linalg.cho_solve((cho_factor, lower),
+    // // np.dot(covariance, self._upadte_mat.T).T,
+    // // check_finite=False).T
+    // Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
+    // Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
+    // Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean;                // eg.1x4
+    // auto tmp = innovation * (kalman_gain.transpose());
+    // KAL_MEAN new_mean = (mean.array() + tmp.array()).matrix();
+    // KAL_COVA new_covariance = covariance - kalman_gain * projected_cov * (kalman_gain.transpose());
+
+    cv::Mat measurement_(4, 1, CV_32F);
+    // 将Eigen矩阵的数据复制到cv::Mat
+    for (int i = 0; i < measurement_.rows; i++) {
+        measurement_.at<float>(i, 0) = measurement(0, i);
+    }
+    for (int i = 0; i < opencv_kf->statePre.rows; i++) {
+        opencv_kf->statePre.at<float>(i, 0) = mean(0, i);
+    }
+    for (int i = 0; i < opencv_kf->errorCovPre.rows; i++) {
+        for(int j = 0; j < opencv_kf->errorCovPre.cols; j++) {
+            opencv_kf->errorCovPre.at<float>(i, j) = covariance(i, j);
+        }
+    }
+    float std_pos = _std_weight_position * mean(3) * _std_weight_position * mean(3);
+    opencv_kf->measurementNoiseCov = (cv::Mat_<float>(4, 4) << std_pos, 0, 0, 0,
+                                                            0, std_pos, 0, 0,
+                                                            0, 0, 1e-2, 0,
+                                                            0, 0, 0, std_pos);
+
+    opencv_kf->correct(measurement_);
+
+    KAL_MEAN new_mean;
+    KAL_COVA new_covariance;
+    for (int i = 0; i < opencv_kf->statePost.rows; i++) {
+        new_mean(0, i) = opencv_kf->statePost.at<float>(i, 0);
+    }
+    for (int i = 0; i < opencv_kf->errorCovPost.rows; i++) {
+        for(int j = 0; j < opencv_kf->errorCovPost.cols; j++) {
+            new_covariance(i, j) = opencv_kf->errorCovPost.at<float>(i, j);
+        }
+    }
+
     return std::make_pair(new_mean, new_covariance);
 }
 
