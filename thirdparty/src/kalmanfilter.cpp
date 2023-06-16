@@ -1,5 +1,17 @@
 #include "kalmanfilter.h"
 #include <Eigen/Cholesky>
+
+void Cholesky(const cv::Mat& A, cv::Mat& S) {
+    S = A.clone();
+    cv::Cholesky ((float*)S.ptr(), S.step, S.rows, NULL, 0, 0);
+    S = S.t();
+    for (int i = 1; i < S.rows; i++) {
+        for (int j = 0; j < i; j++) {
+            S.at<float>(i, j)=0;
+        }
+    }
+}
+
 //sisyphus
 const double KalmanFilter::chi2inv95[10] = {
     0,
@@ -12,16 +24,10 @@ const double KalmanFilter::chi2inv95[10] = {
     14.067,
     15.507,
     16.919};
+
 KalmanFilter::KalmanFilter()
 {
     int ndim = 4;
-    // double dt = 1.;
-
-    // _motion_mat = Eigen::MatrixXf::Identity(8, 8); //transitionMatrix
-    // for (int i = 0; i < ndim; i++)
-    // {
-    //     _motion_mat(i, ndim + i) = dt;
-    // }
     _update_mat = Eigen::MatrixXf::Identity(4, 8); //measurementMatrix
 
     this->_std_weight_position = 1. / 20;
@@ -82,29 +88,6 @@ KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement)
 
 void KalmanFilter::predict(KAL_MEAN &mean, KAL_COVA &covariance)
 {
-    // // revise the data;
-    // DETECTBOX std_pos;
-    // std_pos << _std_weight_position * mean(3),
-    //     _std_weight_position * mean(3),
-    //     1e-2,
-    //     _std_weight_position * mean(3);
-    // DETECTBOX std_vel;
-    // std_vel << _std_weight_velocity * mean(3),
-    //     _std_weight_velocity * mean(3),
-    //     1e-5,
-    //     _std_weight_velocity * mean(3);
-    // KAL_MEAN tmp;
-    // tmp.block<1, 4>(0, 0) = std_pos;
-    // tmp.block<1, 4>(0, 4) = std_vel;
-    // tmp = tmp.array().square();
-    // KAL_COVA motion_cov = tmp.asDiagonal();
-    // KAL_MEAN mean1 = this->_motion_mat * mean.transpose();
-    // KAL_COVA covariance1 = this->_motion_mat * covariance * (_motion_mat.transpose());
-    // covariance1 += motion_cov;
-
-    // mean = mean1;
-    // covariance = covariance1;
-
     float std_pos = _std_weight_position * mean(3) * _std_weight_position * mean(3);
     float std_vel = _std_weight_velocity * mean(3) * _std_weight_velocity * mean(3);
     opencv_kf->processNoiseCov = (cv::Mat_<float>(8, 8) << std_pos, 0, 0, 0, 0, 0, 0, 0,
@@ -136,43 +119,12 @@ void KalmanFilter::predict(KAL_MEAN &mean, KAL_COVA &covariance)
     }
 }
 
-KAL_HDATA KalmanFilter::project(const KAL_MEAN &mean, const KAL_COVA &covariance)
-{
-    DETECTBOX std;
-    std << _std_weight_position * mean(3), _std_weight_position * mean(3),
-        1e-1, _std_weight_position * mean(3);
-    KAL_HMEAN mean1 = _update_mat * mean.transpose();
-    KAL_HCOVA covariance1 = _update_mat * covariance * (_update_mat.transpose());
-    Eigen::Matrix<float, 4, 4> diag = std.asDiagonal();
-    diag = diag.array().square().matrix();
-    covariance1 += diag;
-    //    covariance1.diagonal() << diag;
-    return std::make_pair(mean1, covariance1);
-}
-
 KAL_DATA
 KalmanFilter::update(
     const KAL_MEAN &mean,
     const KAL_COVA &covariance,
     const DETECTBOX &measurement)
 {
-    // KAL_HDATA pa = project(mean, covariance);
-    // KAL_HMEAN projected_mean = pa.first;
-    // KAL_HCOVA projected_cov = pa.second;
-
-    // // chol_factor, lower =
-    // // scipy.linalg.cho_factor(projected_cov, lower=True, check_finite=False)
-    // // kalmain_gain =
-    // // scipy.linalg.cho_solve((cho_factor, lower),
-    // // np.dot(covariance, self._upadte_mat.T).T,
-    // // check_finite=False).T
-    // Eigen::Matrix<float, 4, 8> B = (covariance * (_update_mat.transpose())).transpose();
-    // Eigen::Matrix<float, 8, 4> kalman_gain = (projected_cov.llt().solve(B)).transpose(); // eg.8x4
-    // Eigen::Matrix<float, 1, 4> innovation = measurement - projected_mean;                // eg.1x4
-    // auto tmp = innovation * (kalman_gain.transpose());
-    // KAL_MEAN new_mean = (mean.array() + tmp.array()).matrix();
-    // KAL_COVA new_covariance = covariance - kalman_gain * projected_cov * (kalman_gain.transpose());
-
     cv::Mat measurement_(4, 1, CV_32F);
     // 将Eigen矩阵的数据复制到cv::Mat
     for (int i = 0; i < measurement_.rows; i++) {
@@ -213,27 +165,69 @@ KalmanFilter::gating_distance(
     const KAL_MEAN &mean,
     const KAL_COVA &covariance,
     const std::vector<DETECTBOX> &measurements,
-    bool only_position)
-{
-    KAL_HDATA pa = this->project(mean, covariance);
-    if (only_position)
-    {
+    bool only_position) {
+    if (only_position) {
         printf("not implement!");
         exit(0);
     }
-    KAL_HMEAN mean1 = pa.first;
-    KAL_HCOVA covariance1 = pa.second;
 
-    //    Eigen::Matrix<float, -1, 4, Eigen::RowMajor> d(size, 4);
-    DETECTBOXSS d(measurements.size(), 4);
-    int pos = 0;
-    for (DETECTBOX box : measurements)
-    {
-        d.row(pos++) = box - mean1;
+    cv::Mat std(1, 4, CV_32F);
+    std.at<float>(0) = _std_weight_position * mean(3);
+    std.at<float>(1) = _std_weight_position * mean(3);
+    std.at<float>(2) = 1e-1;
+    std.at<float>(3) = _std_weight_position * mean(3);
+    cv::Mat _mean(mean.rows(), mean.cols(), CV_32F);
+    for(int i = 0; i < mean.rows(); i++) {
+        for(int j = 0; j < mean.cols(); j++) {
+            _mean.at<float>(i, j) = mean(i, j);
+        }
     }
-    Eigen::Matrix<float, -1, -1, Eigen::RowMajor> factor = covariance1.llt().matrixL();
-    Eigen::Matrix<float, -1, -1> z = factor.triangularView<Eigen::Lower>().solve<Eigen::OnTheRight>(d).transpose();
-    auto zz = ((z.array()) * (z.array())).matrix();
-    auto square_maha = zz.colwise().sum();
+    cv::Mat _covariance(covariance.rows(), covariance.cols(), CV_32F);
+    for(int i = 0; i < covariance.rows(); i++) {
+        for(int j = 0; j < covariance.cols(); j++) {
+            _covariance.at<float>(i, j) = covariance(i, j);
+        }
+    }
+    cv::Mat mean1 = opencv_kf->measurementMatrix * _mean.t();
+    cv::Mat covariance1 = opencv_kf->measurementMatrix * _covariance * opencv_kf->measurementMatrix.t();
+
+    cv::Mat diag = cv::Mat::zeros(4, 4, CV_32F);
+    diag.at<float>(0, 0) = std.at<float>(0) * std.at<float>(0);
+    diag.at<float>(1, 1) = std.at<float>(1) * std.at<float>(1);
+    diag.at<float>(2, 2) = std.at<float>(2) * std.at<float>(2);
+    diag.at<float>(3, 3) = std.at<float>(3) * std.at<float>(3);
+
+    covariance1 += diag;
+
+    cv::Mat d(measurements.size(), 4, CV_32F);
+    int pos = 0;
+    for (const auto& box : measurements)
+    {
+        cv::Mat _box(box.rows(), box.cols(), CV_32F);
+        for(int i = 0; i < box.rows(); i++) {
+            for(int j = 0; j < box.cols(); j++) {
+                _box.at<float>(i, j) = box(i, j);
+            }
+        }
+        cv::Mat diff = _box - mean1.t();
+        diff.copyTo(d.row(pos++));
+    }
+
+    cv::Mat cvCovariance = covariance1;
+    cv::Mat factor;
+    Cholesky(cvCovariance, factor);
+
+    cv::Mat cvD = d;
+    cv::Mat cvZ = factor.inv(cv::DECOMP_CHOLESKY) * cvD.t();
+    cv::Mat cvZZ = cvZ.mul(cvZ);
+    cv::Mat cvSquareMaha = cv::Mat::zeros(1, cvZZ.cols, CV_32F);
+    cv::reduce(cvZZ, cvSquareMaha, 0, cv::REDUCE_SUM);
+
+    Eigen::Matrix<float, 1, -1> square_maha(1, cvSquareMaha.cols);
+    for (int i = 0; i < cvSquareMaha.cols; ++i)
+    {
+        square_maha(0, i) = cvSquareMaha.at<float>(0, i);
+    }
+
     return square_maha;
 }
