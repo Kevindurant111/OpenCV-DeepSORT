@@ -16,12 +16,9 @@ class NearNeighborDisMetric {
     float mating_threshold;
     int k_feature_dim;
    private:
-    typedef Eigen::VectorXf (NearNeighborDisMetric::*PTRFUN)(const FEATURESS&, const FEATURESS&);
-    Eigen::VectorXf _nncosine_distance(const FEATURESS& x, const FEATURESS& y);
-    Eigen::VectorXf _nneuclidean_distance(const FEATURESS& x, const FEATURESS& y);
-
-    Eigen::MatrixXf _pdist(const FEATURESS& x, const FEATURESS& y);
-    Eigen::MatrixXf _cosine_distance(const FEATURESS& a, const FEATURESS& b, bool data_is_normalized = false);
+    typedef cv::Mat (NearNeighborDisMetric::*PTRFUN)(const cv::Mat&, const cv::Mat&);
+    cv::Mat _nncosine_distance(const cv::Mat& x, const cv::Mat& y);
+    cv::Mat _cosine_distance(const cv::Mat& x, const cv::Mat& y);
 
    private:
     PTRFUN _metric;

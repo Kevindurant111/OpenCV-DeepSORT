@@ -6,11 +6,12 @@ using namespace Eigen;
 NearNeighborDisMetric::NearNeighborDisMetric(NearNeighborDisMetric::METRIC_TYPE metric,
                                              float matching_threshold,
                                              int budget, int k_feature_dim) {
-    if (metric == euclidean) {
-        _metric = &NearNeighborDisMetric::_nneuclidean_distance;
-    } else if (metric == cosine) {
-        _metric = &NearNeighborDisMetric::_nncosine_distance;
-    }
+    // if (metric == euclidean) {
+    //     _metric = &NearNeighborDisMetric::_nneuclidean_distance;
+    // } else if (metric == cosine) {
+    //     _metric = &NearNeighborDisMetric::_nncosine_distance;
+    // }
+    _metric = &NearNeighborDisMetric::_nncosine_distance;
 
     this->mating_threshold = matching_threshold;
     this->budget = budget;
@@ -23,7 +24,23 @@ NearNeighborDisMetric::distance(const FEATURESS& features, const std::vector<int
     DYNAMICM cost_matrix = Eigen::MatrixXf::Zero(targets.size(), features.rows());
     int idx = 0;
     for (int target : targets) {
-        cost_matrix.row(idx) = (this->*_metric)(this->samples[target], features);
+        cv::Mat x(this->samples[target].rows(), this->samples[target].cols(), CV_32F);
+        cv::Mat y(features.rows(), features.cols(), CV_32F);
+        for(int i = 0; i < x.rows; i++) {
+            for(int j = 0; j < x.cols; j++) {
+                x.at<float>(i, j) = this->samples[target](i, j);
+            }
+        }
+        for(int i = 0; i < y.rows; i++) {
+            for(int j = 0; j < y.cols; j++) {
+                y.at<float>(i, j) = features(i, j);
+            }
+        }        
+        cv::Mat vec = (this->*_metric)(x, y);
+        for(int i = 0; i < cost_matrix.cols(); i++) {
+            cost_matrix(idx, i) = vec.at<float>(i);
+        }
+
         idx++;
     }
     return cost_matrix;
@@ -115,73 +132,19 @@ void NearNeighborDisMetric::partial_fit(std::vector<TRACKER_DATA>& tid_feats, st
     }
 }
 
-Eigen::VectorXf NearNeighborDisMetric::_nncosine_distance(const FEATURESS& x, const FEATURESS& y) {
-    MatrixXf distances = _cosine_distance(x, y);
-    VectorXf res = distances.colwise().minCoeff().transpose();
+cv::Mat NearNeighborDisMetric::_nncosine_distance(const cv::Mat& x, const cv::Mat& y) {
+    cv::Mat distances = _cosine_distance(x, y);
+    // 计算每一列的最小值
+    cv::Mat minValues;
+    cv::reduce(distances, minValues, 0, cv::REDUCE_MIN);
+
+    cv::Mat res = minValues.t();
     return res;
 }
 
-Eigen::VectorXf NearNeighborDisMetric::_nneuclidean_distance(const FEATURESS& x, const FEATURESS& y) {
-    MatrixXf distances = _pdist(x, y);
-    VectorXf res = distances.colwise().maxCoeff().transpose();
-    res = res.array().max(VectorXf::Zero(res.rows()).array());
-    return res;
-}
-
-Eigen::MatrixXf NearNeighborDisMetric::_pdist(const FEATURESS& _x, const FEATURESS& _y) {
-    cv::Mat x(_x.rows(), _x.cols(), CV_32F), y(_y.rows(), _y.cols(), CV_32F);
-    for(int i = 0; i < _x.rows(); i++) {
-        for(int j = 0; j < _x.cols(); j++) {
-            x.at<float>(i, j) = _x(i, j);
-        }
-    }
-    for(int i = 0; i < _y.rows(); i++) {
-        for(int j = 0; j < _y.cols(); j++) {
-            y.at<float>(i, j) = _y(i, j);
-        }
-    }
-
-    int len1 = x.rows, len2 = y.rows;
-    if (len1 == 0 || len2 == 0) {
-        return Eigen::MatrixXf::Zero(len1, len2);
-    }
-
+cv::Mat NearNeighborDisMetric::_cosine_distance(const cv::Mat& x, const cv::Mat& y) {
     cv::Mat res;
-    cv::gemm(x, y.t(), -2, cv::Mat(), 0, res, cv::GEMM_1_T);  // 矩阵乘法和加法
-    cv::reduce(x.mul(x), res, 1, cv::REDUCE_SUM);            // 每行的平方和
-    res = cv::repeat(res, 1, len2);
-    cv::reduce(y.mul(y), res, 1, cv::REDUCE_SUM);            // 每列的平方和
-    res = cv::repeat(res.t(), len1, 1);
-    cv::max(res, cv::Mat::zeros(res.rows, res.cols, CV_32F), res);  // 逐元素最大值
-    MatrixXf res_;
-    for(int i = 0; i < res.rows; i++) {
-        for(int j = 0; j < res.cols; j++) {
-            res_(i, j) = res.at<float>(i, j);
-        }
-    }   
-
-    return res_;
-}
-
-// Eigen::MatrixXf NearNeighborDisMetric::_pdist(const FEATURESS& x, const FEATURESS& y) {
-//     int len1 = x.rows(), len2 = y.rows();
-//     if (len1 == 0 || len2 == 0) {
-//         return Eigen::MatrixXf::Zero(len1, len2);
-//     }
-//     MatrixXf res = x * y.transpose() * -2;
-//     res = res.colwise() + x.rowwise().squaredNorm();
-//     res = res.rowwise() + y.rowwise().squaredNorm().transpose();
-//     res = res.array().max(MatrixXf::Zero(res.rows(), res.cols()).array());
-//     return res;
-// }
-
-Eigen::MatrixXf NearNeighborDisMetric::_cosine_distance(const FEATURESS& a,
-                                                        const FEATURESS& b,
-                                                        bool data_is_normalized) {
-    if (data_is_normalized == true) {
-        // undo:
-        assert(false);
-    }
-    MatrixXf res = 1. - (a * b.transpose()).array();
+    cv::gemm(x, y.t(), 1, cv::Mat(), 0, res);
+    cv::subtract(cv::Scalar::all(1), res, res);
     return res;
 }
