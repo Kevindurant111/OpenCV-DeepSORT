@@ -1,11 +1,11 @@
 #ifndef HUNGARIANOPER_H
 #define HUNGARIANOPER_H
 #include "munkres.h"
-#include "dataType.h"
+#include <opencv2/opencv.hpp>
 
 class HungarianOper {
 public:
-    static Eigen::Matrix<float, -1, 2, Eigen::RowMajor> Solve(const DYNAMICM &cost_matrix);
+    static cv::Mat Solve(const cv::Mat &cost_matrix);
 };
 
 #endif // HUNGARIANOPER_H

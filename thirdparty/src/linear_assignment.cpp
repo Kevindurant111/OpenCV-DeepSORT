@@ -112,25 +112,34 @@ linear_assignment::min_cost_matching(tracker *distance_metric,
             if(tmp > max_distance) cost_matrix(i,j) = max_distance + 1e-5;
         }
     }
-    Eigen::Matrix<float, -1, 2, Eigen::RowMajor> indices = HungarianOper::Solve(cost_matrix);
+
+    cv::Mat _cost_matrix(cost_matrix.rows(), cost_matrix.cols(), CV_32F);
+    for(int i = 0; i < cost_matrix.rows(); i++) {
+        for(int j = 0; j < cost_matrix.cols(); j++) {
+            _cost_matrix.at<float>(i, j) = cost_matrix(i, j);
+        }
+    }
+    
+    cv::Mat indices = HungarianOper::Solve(_cost_matrix);
+
     res.matches.clear();
     res.unmatched_tracks.clear();
     res.unmatched_detections.clear();
     for(size_t col = 0; col < detection_indices.size(); col++) {
         bool flag = false;
-        for(int i = 0; i < indices.rows(); i++)
-            if(indices(i, 1) == col) { flag = true; break;}
+        for(int i = 0; i < indices.rows; i++)
+            if(indices.at<float>(i, 1) == col) { flag = true; break;}
         if(flag == false)res.unmatched_detections.push_back(detection_indices[col]);
     }
     for(size_t row = 0; row < track_indices.size(); row++) {
         bool flag = false;
-        for(int i = 0; i < indices.rows(); i++)
-            if(indices(i, 0) == row) { flag = true; break; }
+        for(int i = 0; i < indices.rows; i++)
+            if(indices.at<float>(i, 0) == row) { flag = true; break; }
         if(flag == false) res.unmatched_tracks.push_back(track_indices[row]);
     }
-    for(int i = 0; i < indices.rows(); i++) {
-        int row = indices(i, 0);
-        int col = indices(i, 1);
+    for(int i = 0; i < indices.rows; i++) {
+        int row = indices.at<float>(i, 0);
+        int col = indices.at<float>(i, 1);
 
         int track_idx = track_indices[row];
         int detection_idx = detection_indices[col];

@@ -4,7 +4,7 @@
     @Date        : 2022-09-21 05:49:06
 */
 #pragma once
-
+#include <opencv2/opencv.hpp>
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <cstddef>
