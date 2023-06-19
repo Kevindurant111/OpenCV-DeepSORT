@@ -1,5 +1,4 @@
 #include "kalmanfilter.h"
-#include <Eigen/Cholesky>
 
 void Cholesky(const cv::Mat& A, cv::Mat& S) {
     S = A.clone();
@@ -51,33 +50,31 @@ KalmanFilter::~KalmanFilter() {
     delete opencv_kf;
 }
 
-KAL_DATA KalmanFilter::initiate(const DETECTBOX &measurement) {
-    DETECTBOX mean_pos = measurement;
-    DETECTBOX mean_vel;
-    for (int i = 0; i < 4; i++)
-        mean_vel(i) = 0;
+std::pair<cv::Mat, cv::Mat> KalmanFilter::initiate(const cv::Mat& measurement) {
+    cv::Mat mean_pos = measurement.clone();
+    cv::Mat mean_vel = cv::Mat::zeros(1, 4, CV_32F);
 
-    KAL_MEAN mean;
-    for (int i = 0; i < 8; i++)
-    {
+    cv::Mat mean(1, 8, CV_32F);
+    for (int i = 0; i < 8; i++) {
         if (i < 4)
-            mean(i) = mean_pos(i);
+            mean.at<float>(0, i) = mean_pos.at<float>(0, i);
         else
-            mean(i) = mean_vel(i - 4);
+            mean.at<float>(0, i) = mean_vel.at<float>(0, i - 4);
     }
 
-    KAL_MEAN std;
-    std(0) = 2 * _std_weight_position * measurement[3];
-    std(1) = 2 * _std_weight_position * measurement[3];
-    std(2) = 1e-2;
-    std(3) = 2 * _std_weight_position * measurement[3];
-    std(4) = 10 * _std_weight_velocity * measurement[3];
-    std(5) = 10 * _std_weight_velocity * measurement[3];
-    std(6) = 1e-5;
-    std(7) = 10 * _std_weight_velocity * measurement[3];
+    cv::Mat std(1, 8, CV_32F);
+    std.at<float>(0) = 2 * _std_weight_position * measurement.at<float>(0, 3);
+    std.at<float>(1) = 2 * _std_weight_position * measurement.at<float>(0, 3);
+    std.at<float>(2) = 1e-2;
+    std.at<float>(3) = 2 * _std_weight_position * measurement.at<float>(0, 3);
+    std.at<float>(4) = 10 * _std_weight_velocity * measurement.at<float>(0, 3);
+    std.at<float>(5) = 10 * _std_weight_velocity * measurement.at<float>(0, 3);
+    std.at<float>(6) = 1e-5;
+    std.at<float>(7) = 10 * _std_weight_velocity * measurement.at<float>(0, 3);
 
-    KAL_MEAN tmp = std.array().square();
-    KAL_COVA var = tmp.asDiagonal();
+    cv::Mat tmp = std.mul(std);
+    cv::Mat var = cv::Mat::diag(tmp);
+
     return std::make_pair(mean, var);
 }
 

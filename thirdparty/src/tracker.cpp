@@ -137,9 +137,28 @@ void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
 }
 
 void tracker::_initiate_track(const DETECTION_ROW& detection) {
-    KAL_DATA data = kf->initiate(detection.to_xyah());
-    KAL_MEAN mean = data.first;
-    KAL_COVA covariance = data.second;
+    auto detection_box = detection.to_xyah();
+    cv::Mat _detection_box(detection_box.rows(), detection_box.cols(), CV_32F);
+    for(int i = 0; i < detection_box.rows(); i++) {
+        for(int j = 0; j < detection_box.cols(); j++) {
+            _detection_box.at<float>(i, j) = detection_box(i, j);
+        }
+    }
+    auto data = kf->initiate(_detection_box);
+    auto _mean = data.first;
+    auto _covariance = data.second;
+    KAL_MEAN mean;
+    KAL_COVA covariance;
+    for(int i = 0; i < mean.rows(); i++) {
+        for(int j = 0; j < mean.cols(); j++) {
+            mean(i, j) = _mean.at<float>(i, j);
+        }
+    }
+    for(int i = 0; i < covariance.rows(); i++) {
+        for(int j = 0; j < covariance.cols(); j++) {
+            covariance(i, j) = _covariance.at<float>(i, j);
+        }
+    }
 
     this->tracks.push_back(
         Track(mean, covariance, this->_next_idx, detection.class_id, this->n_init, this->max_age, detection.feature, k_feature_dim));

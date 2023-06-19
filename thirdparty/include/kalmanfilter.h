@@ -8,7 +8,7 @@ public:
     static const double chi2inv95[10];
     KalmanFilter();
     ~KalmanFilter();
-    KAL_DATA initiate(const DETECTBOX& measurement);
+    std::pair<cv::Mat, cv::Mat> initiate(const cv::Mat& measurement);
     void predict(KAL_MEAN& mean, KAL_COVA& covariance);
     KAL_DATA update(const KAL_MEAN& mean,
                     const KAL_COVA& covariance,
