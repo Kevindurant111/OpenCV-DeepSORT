@@ -170,10 +170,34 @@ linear_assignment::gate_cost_matrix(
     }
     for(size_t i  = 0; i < track_indices.size(); i++) {
         Track& track = tracks[track_indices[i]];
-        Eigen::Matrix<float, 1, -1> gating_distance = kf->gating_distance(
-                    track.mean, track.covariance, measurements, only_position);
-        for (int j = 0; j < gating_distance.cols(); j++) {
-            if (gating_distance(0, j) > gating_threshold)  cost_matrix(i, j) = gated_cost;
+        auto mean = track.mean;
+        auto covariance = track.covariance;
+        cv::Mat _mean_(mean.rows(), mean.cols(), CV_32F);
+        cv::Mat _covariance_(covariance.rows(), covariance.cols(), CV_32F);
+        
+        for(int i = 0; i < mean.rows(); i++) {
+            for(int j = 0; j < mean.cols(); j++) {
+                _mean_.at<float>(i, j) = mean(i, j);
+            }
+        }
+        for(int i = 0; i < covariance.rows(); i++) {
+            for(int j = 0; j < covariance.cols(); j++) {
+                _covariance_.at<float>(i, j) = covariance(i, j);
+            }
+        }
+        std::vector<cv::Mat> _measurements;
+        for(auto& measurement : measurements) {
+            cv::Mat box(measurement.rows(), measurement.cols(), CV_32F);
+            for(int i = 0; i < measurement.rows(); i++) {
+                for(int j = 0; j < measurement.cols(); j++) {
+                    box.at<float>(i, j) = measurement(i, j);
+                }
+            }
+            _measurements.push_back(box.clone());
+        }
+        cv::Mat gating_distance = kf->gating_distance(_mean_, _covariance_, _measurements, only_position);
+        for (int j = 0; j < gating_distance.cols; j++) {
+            if (gating_distance.at<float>(0, j) > gating_threshold)  cost_matrix(i, j) = gated_cost;
         }
     }
     return cost_matrix;

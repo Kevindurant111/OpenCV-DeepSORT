@@ -9,14 +9,14 @@ public:
     KalmanFilter();
     ~KalmanFilter();
     std::pair<cv::Mat, cv::Mat> initiate(const cv::Mat& measurement);
-    void predict(KAL_MEAN& mean, KAL_COVA& covariance);
-    KAL_DATA update(const KAL_MEAN& mean,
-                    const KAL_COVA& covariance,
-                    const DETECTBOX& measurement);
-    Eigen::Matrix<float, 1, -1> gating_distance(
-            const KAL_MEAN& mean,
-            const KAL_COVA& covariance,
-            const std::vector<DETECTBOX>& measurements,
+    std::pair<cv::Mat, cv::Mat> predict(const cv::Mat& mean, const cv::Mat& covariance);
+    std::pair<cv::Mat, cv::Mat> update(const cv::Mat& mean,
+                    const cv::Mat& covariance,
+                    const cv::Mat& measurement);
+    cv::Mat gating_distance(
+            const cv::Mat& mean,
+            const cv::Mat& covariance,
+            const std::vector<cv::Mat>& measurements,
             bool only_position = false);
 
 private:
