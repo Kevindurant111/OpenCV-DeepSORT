@@ -85,17 +85,6 @@ linear_assignment::min_cost_matching(tracker *distance_metric,
         std::vector<int> &detection_indices)
 {
     TRACHER_MATCHD res;
-    //!!!python diff: track_indices && detection_indices will never be None.
-    //    if(track_indices.empty() == true) {
-    //        for(size_t i = 0; i < tracks.size(); i++) {
-    //            track_indices.push_back(i);
-    //        }
-    //    }
-    //    if(detection_indices.empty() == true) {
-    //        for(size_t i = 0; i < detections.size(); i++) {
-    //            detection_indices.push_back(int(i));
-    //        }
-    //    }
     if((detection_indices.size() == 0) || (track_indices.size() == 0)) {
         res.matches.clear();
         res.unmatched_tracks.assign(track_indices.begin(), track_indices.end());
@@ -161,7 +150,8 @@ linear_assignment::gate_cost_matrix(
 {
     int gating_dim = (only_position == true?2:4);
     double gating_threshold = KalmanFilter::chi2inv95[gating_dim];
-    std::vector<DETECTBOX> measurements;
+    std::vector<cv::Mat> measurements;
+    // 改
     for(int i:detection_indices) {
         DETECTION_ROW t = detections[i];
         measurements.push_back(t.to_xyah());
@@ -170,17 +160,7 @@ linear_assignment::gate_cost_matrix(
         Track& track = tracks[track_indices[i]];
         auto mean = track.mean;
         auto covariance = track.covariance;
-        std::vector<cv::Mat> _measurements;
-        for(auto& measurement : measurements) {
-            cv::Mat box(measurement.rows(), measurement.cols(), CV_32F);
-            for(int i = 0; i < measurement.rows(); i++) {
-                for(int j = 0; j < measurement.cols(); j++) {
-                    box.at<float>(i, j) = measurement(i, j);
-                }
-            }
-            _measurements.push_back(box.clone());
-        }
-        cv::Mat gating_distance = kf->gating_distance(mean, covariance, _measurements, only_position).clone();
+        cv::Mat gating_distance = kf->gating_distance(mean, covariance, measurements, only_position).clone();
         for (int j = 0; j < gating_distance.cols; j++) {
             if (gating_distance.at<float>(0, j) > gating_threshold)  cost_matrix(i, j) = gated_cost;
         }

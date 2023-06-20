@@ -143,14 +143,8 @@ void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
 }
 
 void tracker::_initiate_track(const DETECTION_ROW& detection) {
-    auto detection_box = detection.to_xyah();
-    cv::Mat _detection_box(detection_box.rows(), detection_box.cols(), CV_32F);
-    for(int i = 0; i < detection_box.rows(); i++) {
-        for(int j = 0; j < detection_box.cols(); j++) {
-            _detection_box.at<float>(i, j) = detection_box(i, j);
-        }
-    }
-    auto data = kf->initiate(_detection_box);
+    // 改
+    auto data = kf->initiate(detection.to_xyah());
     auto mean = data.first.clone();
     auto covariance = data.second.clone();
 
@@ -209,8 +203,13 @@ tracker::iou_cost(std::vector<Track>& tracks,
         DETECTBOX bbox = tracks[track_idx].to_tlwh();
         int csize = detection_indices.size();
         DETECTBOXSS candidates(csize, 4);
-        for (int k = 0; k < csize; k++)
-            candidates.row(k) = dets[detection_indices[k]].tlwh;
+        for (int k = 0; k < csize; k++) {
+            //改
+            auto mat = dets[detection_indices[k]].tlwh;
+            for(int i = 0; i < candidates.cols(); i++) {
+                candidates(k, i) = mat.at<float>(i);
+            }
+        }
         Eigen::RowVectorXf rowV = (1. - iou(bbox, candidates).array()).matrix().transpose();
         cost_matrix.row(i) = rowV;
     }

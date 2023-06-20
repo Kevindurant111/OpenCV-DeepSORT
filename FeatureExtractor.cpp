@@ -157,10 +157,10 @@ bool FeatureExtractor::getRectsFeature(const bm_image& image, DETECTIONS& det) {
     int start = 0;
     for (int i = 0; i < det.size(); i++) {
         bmcv_rect_t crop_rect;
-        crop_rect.start_x = det[i].tlwh(0);
-        crop_rect.start_y = det[i].tlwh(1);
-        crop_rect.crop_w = det[i].tlwh(2);
-        crop_rect.crop_h = det[i].tlwh(3);
+        crop_rect.start_x = det[i].tlwh.at<float>(0);
+        crop_rect.start_y = det[i].tlwh.at<float>(1);
+        crop_rect.crop_w = det[i].tlwh.at<float>(2);
+        crop_rect.crop_h = det[i].tlwh.at<float>(3);
         // crop_rect.start_x = MIN(MAX(int(dbox.tlwh(0)), 0), image.width);
         // crop_rect.start_y = MIN(MAX(int(dbox.tlwh(1)), 0), image.height);
         // crop_rect.crop_w = MAX(MIN(int(dbox.tlwh(2)), image.width - int(dbox.tlwh(0))), 0);

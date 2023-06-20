@@ -44,15 +44,8 @@ void Track::predit(KalmanFilter* kf) {
 }
 
 void Track::update(KalmanFilter* const kf, const DETECTION_ROW& detection) {
-    cv::Mat box(detection.to_xyah().rows(), detection.to_xyah().cols(), CV_32F);
-
-    for(int i = 0; i < detection.to_xyah().rows(); i++) {
-        for(int j = 0; j < detection.to_xyah().cols(); j++) {
-            box.at<float>(i, j) = detection.to_xyah()(i, j);
-        }
-    }
-
-    auto pa = kf->update(mean, covariance, box);
+    // 改
+    auto pa = kf->update(mean, covariance, detection.to_xyah());
 
     mean = pa.first.clone();
     covariance = pa.second.clone();    

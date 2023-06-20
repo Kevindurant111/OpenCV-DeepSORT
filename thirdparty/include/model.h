@@ -9,12 +9,12 @@
 // */
 class DETECTION_ROW {
    public:
-    DETECTBOX tlwh;
+    cv::Mat tlwh;
     float confidence;
     int class_id;
     FEATURE feature;
-    DETECTBOX to_xyah() const;
-    DETECTBOX to_tlbr() const;
+    cv::Mat to_xyah() const;
+    cv::Mat to_tlbr() const;
 };
 
 typedef std::vector<DETECTION_ROW> DETECTIONS;

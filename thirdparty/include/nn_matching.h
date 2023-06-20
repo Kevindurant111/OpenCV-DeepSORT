@@ -2,7 +2,6 @@
 #define NN_MATCHING_H
 
 #include <opencv2/opencv.hpp>
-#include <dataType.h>
 #include <map>
 
 // A tool to calculate distance;

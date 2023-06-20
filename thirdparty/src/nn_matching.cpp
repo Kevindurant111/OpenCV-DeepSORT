@@ -1,8 +1,4 @@
 #include "nn_matching.h"
-
-using namespace Eigen;
-
-
 NearNeighborDisMetric::NearNeighborDisMetric(NearNeighborDisMetric::METRIC_TYPE metric,
                                              float matching_threshold,
                                              int budget, int k_feature_dim) {
