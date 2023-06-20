@@ -1,16 +1,16 @@
 #include "track.h"
 
 
-Track::Track(KAL_MEAN& mean,
-             KAL_COVA& covariance,
+Track::Track(const cv::Mat& mean,
+             const cv::Mat& covariance,
              int track_id,
              int class_id,
              int n_init,
              int max_age,
              const FEATURE& feature,
              int k_feature_dim) {
-    this->mean = mean;
-    this->covariance = covariance;
+    this->mean = mean.clone();
+    this->covariance = covariance.clone();
     this->track_id = track_id;
     this->class_id = class_id;
     this->hits = 1;
@@ -33,71 +33,29 @@ void Track::predit(KalmanFilter* kf) {
         ----------
         kf : kalman_filter.KalmanFilter
             The Kalman filter.
-        */
-    cv::Mat _mean_(mean.rows(), mean.cols(), CV_32F);
-    cv::Mat _covariance_(covariance.rows(), covariance.cols(), CV_32F);
-     for(int i = 0; i < mean.rows(); i++) {
-        for(int j = 0; j < mean.cols(); j++) {
-            _mean_.at<float>(i, j) = mean(i, j);
-        }
-    }
-    for(int i = 0; i < covariance.rows(); i++) {
-        for(int j = 0; j < covariance.cols(); j++) {
-            _covariance_.at<float>(i, j) = covariance(i, j);
-        }
-    }   
-    auto pa = kf->predict(_mean_, _covariance_);
+        */  
+    auto pa = kf->predict(mean, covariance);
 
-    cv::Mat _mean = pa.first;
-    cv::Mat _covariance = pa.second;
-    for(int i = 0; i < mean.rows(); i++) {
-        for(int j = 0; j < mean.cols(); j++) {
-            mean(i, j) = _mean.at<float>(i, j);
-        }
-    }
-    for(int i = 0; i < covariance.rows(); i++) {
-        for(int j = 0; j < covariance.cols(); j++) {
-            covariance(i, j) = _covariance.at<float>(i, j);
-        }
-    }
+    mean = pa.first.clone();
+    covariance = pa.second.clone();
+
     this->age += 1;
     this->time_since_update += 1;
 }
 
 void Track::update(KalmanFilter* const kf, const DETECTION_ROW& detection) {
-    cv::Mat _mean_(mean.rows(), mean.cols(), CV_32F);
-    cv::Mat _covariance_(covariance.rows(), covariance.cols(), CV_32F);
     cv::Mat box(detection.to_xyah().rows(), detection.to_xyah().cols(), CV_32F);
-    for(int i = 0; i < mean.rows(); i++) {
-        for(int j = 0; j < mean.cols(); j++) {
-            _mean_.at<float>(i, j) = mean(i, j);
-        }
-    }
-    for(int i = 0; i < covariance.rows(); i++) {
-        for(int j = 0; j < covariance.cols(); j++) {
-            _covariance_.at<float>(i, j) = covariance(i, j);
-        }
-    }
+
     for(int i = 0; i < detection.to_xyah().rows(); i++) {
         for(int j = 0; j < detection.to_xyah().cols(); j++) {
             box.at<float>(i, j) = detection.to_xyah()(i, j);
         }
     }
 
-    auto pa = kf->update(_mean_, _covariance_, box);
-    cv::Mat _mean = pa.first;
-    cv::Mat _covariance = pa.second;
-    for(int i = 0; i < mean.rows(); i++) {
-        for(int j = 0; j < mean.cols(); j++) {
-            mean(i, j) = _mean.at<float>(i, j);
-        }
-    }
-    for(int i = 0; i < covariance.rows(); i++) {
-        for(int j = 0; j < covariance.cols(); j++) {
-            covariance(i, j) = _covariance.at<float>(i, j);
-        }
-    }
-    
+    auto pa = kf->update(mean, covariance, box);
+
+    mean = pa.first.clone();
+    covariance = pa.second.clone();    
 
     featuresAppendOne(detection.feature);
     //    this->features.row(features.rows()) = detection.feature;
@@ -129,7 +87,13 @@ bool Track::is_tentative() {
 }
 
 DETECTBOX Track::to_tlwh() {
-    DETECTBOX ret = mean.leftCols(4);
+    KAL_MEAN mean_;
+    for(int i = 0; i < mean_.rows(); i++) {
+        for(int j = 0; j < mean_.cols(); j++) {
+            mean_(i, j) = mean.at<float>(i, j);
+        }
+    }
+    DETECTBOX ret = mean_.leftCols(4);
     ret(2) *= ret(3);
     ret.leftCols(2) -= (ret.rightCols(2) / 2);
     return ret;

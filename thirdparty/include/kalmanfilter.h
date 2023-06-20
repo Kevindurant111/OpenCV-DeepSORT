@@ -1,9 +1,8 @@
 #ifndef KALMANFILTER_H
 #define KALMANFILTER_H
-#include "dataType.h"
+#include <opencv2/opencv.hpp>
 
-class KalmanFilter
-{
+class KalmanFilter {
 public:
     static const double chi2inv95[10];
     KalmanFilter();

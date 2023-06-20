@@ -145,20 +145,8 @@ void tracker::_initiate_track(const DETECTION_ROW& detection) {
         }
     }
     auto data = kf->initiate(_detection_box);
-    auto _mean = data.first;
-    auto _covariance = data.second;
-    KAL_MEAN mean;
-    KAL_COVA covariance;
-    for(int i = 0; i < mean.rows(); i++) {
-        for(int j = 0; j < mean.cols(); j++) {
-            mean(i, j) = _mean.at<float>(i, j);
-        }
-    }
-    for(int i = 0; i < covariance.rows(); i++) {
-        for(int j = 0; j < covariance.cols(); j++) {
-            covariance(i, j) = _covariance.at<float>(i, j);
-        }
-    }
+    auto mean = data.first.clone();
+    auto covariance = data.second.clone();
 
     this->tracks.push_back(
         Track(mean, covariance, this->_next_idx, detection.class_id, this->n_init, this->max_age, detection.feature, k_feature_dim));

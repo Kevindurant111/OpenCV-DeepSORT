@@ -54,8 +54,8 @@ class Track {
     enum TrackState { Tentative = 1, Confirmed, Deleted };
 
    public:
-    Track(KAL_MEAN& mean,
-          KAL_COVA& covariance,
+    Track(const cv::Mat& mean,
+          const cv::Mat& covariance,
           int track_id,
           int class_id,
           int n_init,
@@ -74,8 +74,8 @@ class Track {
     int class_id;
     int k_feature_dim;
     FEATURESS features;
-    KAL_MEAN mean;
-    KAL_COVA covariance;
+    cv::Mat mean;
+    cv::Mat covariance;
 
     int hits;
     int age;
