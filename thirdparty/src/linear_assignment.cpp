@@ -3,16 +3,14 @@
 #include <map>
 
 linear_assignment *linear_assignment::instance = NULL;
-linear_assignment::linear_assignment()
-{
+linear_assignment::linear_assignment() {
 }
 
 linear_assignment::~linear_assignment() {
     if(instance != NULL) delete instance;
 }
 
-linear_assignment *linear_assignment::getInstance()
-{
+linear_assignment *linear_assignment::getInstance() {
     if(instance == NULL) instance = new linear_assignment();
     return instance;
 }

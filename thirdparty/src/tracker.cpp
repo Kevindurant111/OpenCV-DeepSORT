@@ -84,12 +84,18 @@ void tracker::update(const DETECTIONS& detections) {
     }
 
     vector<int> active_targets;
-    vector<TRACKER_DATA> tid_features;
+    vector<pair<int, cv::Mat>> tid_features;
     for (Track& track : tracks) {
         if (track.is_confirmed() == false)
             continue;
         active_targets.push_back(track.track_id);
-        tid_features.push_back(std::make_pair(track.track_id, track.features));
+        cv::Mat _feature(track.features.rows(), track.features.cols(), CV_32F);
+        for(int i = 0; i < track.features.rows(); i++) {
+            for(int j = 0; j < track.features.cols(); j++) {
+                _feature.at<float>(i, j) = track.features(i, j);
+            }
+        }
+        tid_features.push_back(std::make_pair(track.track_id, _feature));
         FEATURESS t = FEATURESS(0, k_feature_dim);
         track.features = t;
     }
@@ -166,7 +172,21 @@ DYNAMICM tracker::gated_matric(std::vector<Track>& tracks,
     for (int i : track_indices) {
         targets.push_back(tracks[i].track_id);
     }
-    DYNAMICM cost_matrix = this->metric->distance(features, targets);
+    cv::Mat _feature(features.rows(), features.cols(), CV_32F);
+    for(int i = 0; i < features.rows(); i++) {
+        for(int j = 0; j < features.cols(); j++) {
+            _feature.at<float>(i, j) = features(i, j);
+        }
+    }
+
+    cv::Mat _cost_matrix = this->metric->distance(_feature, targets).clone();
+    DYNAMICM cost_matrix = Eigen::MatrixXf::Zero(_cost_matrix.rows, _cost_matrix.cols);
+    for(int i = 0; i < _cost_matrix.rows; i++) {
+        for(int j = 0; j < _cost_matrix.cols; j++) {
+            cost_matrix(i, j) = _cost_matrix.at<float>(i, j);
+        }
+    }
+    
     DYNAMICM res = linear_assignment::getInstance()->gate_cost_matrix(this->kf, cost_matrix, tracks, dets,
                                                                       track_indices, detection_indices);
     return res;
@@ -177,17 +197,6 @@ tracker::iou_cost(std::vector<Track>& tracks,
                   const DETECTIONS& dets,
                   const std::vector<int>& track_indices,
                   const std::vector<int>& detection_indices) {
-    //!!!python diff: track_indices && detection_indices will never be None.
-    //    if(track_indices.empty() == true) {
-    //        for(size_t i = 0; i < tracks.size(); i++) {
-    //            track_indices.push_back(i);
-    //        }
-    //    }
-    //    if(detection_indices.empty() == true) {
-    //        for(size_t i = 0; i < dets.size(); i++) {
-    //            detection_indices.push_back(i);
-    //        }
-    //    }
     int rows = track_indices.size();
     int cols = detection_indices.size();
     DYNAMICM cost_matrix = Eigen::MatrixXf::Zero(rows, cols);

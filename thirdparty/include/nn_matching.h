@@ -1,8 +1,8 @@
 #ifndef NN_MATCHING_H
 #define NN_MATCHING_H
 
-#include "dataType.h"
-
+#include <opencv2/opencv.hpp>
+#include <dataType.h>
 #include <map>
 
 // A tool to calculate distance;
@@ -10,20 +10,19 @@ class NearNeighborDisMetric {
    public:
     enum METRIC_TYPE { euclidean = 1, cosine };
     NearNeighborDisMetric(METRIC_TYPE metric, float matching_threshold, int budget, int k_feature_dim);
-    DYNAMICM distance(const FEATURESS& features, const std::vector<int>& targets);
-    //    void partial_fit(FEATURESS& features, std::vector<int> targets, std::vector<int> active_targets);
-    void partial_fit(std::vector<TRACKER_DATA>& tid_feats, std::vector<int>& active_targets);
+    cv::Mat distance(const cv::Mat& features, const std::vector<int>& targets);
+    void partial_fit(std::vector<std::pair<int, cv::Mat>>& tid_feats, std::vector<int>& active_targets);
     float mating_threshold;
     int k_feature_dim;
    private:
-    typedef cv::Mat (NearNeighborDisMetric::*PTRFUN)(const cv::Mat&, const cv::Mat&);
+    typedef cv::Mat(NearNeighborDisMetric::*PTRFUN)(const cv::Mat&, const cv::Mat&);
     cv::Mat _nncosine_distance(const cv::Mat& x, const cv::Mat& y);
     cv::Mat _cosine_distance(const cv::Mat& x, const cv::Mat& y);
 
    private:
     PTRFUN _metric;
     int budget;
-    std::map<int, FEATURESS> samples;
+    std::map<int, cv::Mat> samples;
 };
 
 #endif  // NN_MATCHING_H
