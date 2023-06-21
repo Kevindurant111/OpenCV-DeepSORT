@@ -27,14 +27,6 @@ linear_assignment::matching_cascade(
         std::vector<int> detection_indices)
 {
     TRACHER_MATCHD res;
-    //!!!python diff: track_indices will never be None.
-    //    if(track_indices.empty() == true) {
-    //        for(size_t i = 0; i < tracks.size(); i++) {
-    //            track_indices.push_back(i);
-    //        }
-    //    }
-
-    //!!!python diff: detection_indices will always be None.
     for(size_t i = 0; i < detections.size(); i++) {
         detection_indices.push_back(int(i));
     }
@@ -91,23 +83,17 @@ linear_assignment::min_cost_matching(tracker *distance_metric,
         res.unmatched_detections.assign(detection_indices.begin(), detection_indices.end());
         return res;
     }
-    DYNAMICM cost_matrix = (distance_metric->*(distance_metric_func))(
-                tracks, detections, track_indices, detection_indices);
-    for(int i = 0; i < cost_matrix.rows(); i++) {
-        for(int j = 0; j < cost_matrix.cols(); j++) {
-            float tmp = cost_matrix(i,j);
-            if(tmp > max_distance) cost_matrix(i,j) = max_distance + 1e-5;
-        }
-    }
 
-    cv::Mat _cost_matrix(cost_matrix.rows(), cost_matrix.cols(), CV_32F);
-    for(int i = 0; i < cost_matrix.rows(); i++) {
-        for(int j = 0; j < cost_matrix.cols(); j++) {
-            _cost_matrix.at<float>(i, j) = cost_matrix(i, j);
+    cv::Mat cost_matrix = (distance_metric->*(distance_metric_func))(
+                tracks, detections, track_indices, detection_indices);
+    for(int i = 0; i < cost_matrix.rows; i++) {
+        for(int j = 0; j < cost_matrix.cols; j++) {
+            float tmp = cost_matrix.at<float>(i,j);
+            if(tmp > max_distance) cost_matrix.at<float>(i,j) = max_distance + 1e-5;
         }
     }
     
-    cv::Mat indices = HungarianOper::Solve(_cost_matrix);
+    cv::Mat indices = HungarianOper::Solve(cost_matrix);
 
     res.matches.clear();
     res.unmatched_tracks.clear();
@@ -130,7 +116,7 @@ linear_assignment::min_cost_matching(tracker *distance_metric,
 
         int track_idx = track_indices[row];
         int detection_idx = detection_indices[col];
-        if(cost_matrix(row, col) > max_distance) {
+        if(cost_matrix.at<float>(row, col) > max_distance) {
             res.unmatched_tracks.push_back(track_idx);
             res.unmatched_detections.push_back(detection_idx);
         } else res.matches.push_back(std::make_pair(track_idx, detection_idx));

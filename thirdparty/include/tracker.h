@@ -31,7 +31,7 @@ class tracker {
     virtual ~tracker();
     void predict();
     void update(const DETECTIONS& detections);
-    typedef DYNAMICM (tracker::*GATED_METRIC_FUNC)(std::vector<Track>& tracks,
+    typedef cv::Mat (tracker::*GATED_METRIC_FUNC)(std::vector<Track>& tracks,
                                                    const DETECTIONS& dets,
                                                    const std::vector<int>& track_indices,
                                                    const std::vector<int>& detection_indices);
@@ -41,11 +41,11 @@ class tracker {
     void _initiate_track(const DETECTION_ROW& detection);
 
    public:
-    DYNAMICM gated_matric(std::vector<Track>& tracks,
+    cv::Mat gated_matric(std::vector<Track>& tracks,
                           const DETECTIONS& dets,
                           const std::vector<int>& track_indices,
                           const std::vector<int>& detection_indices);
-    DYNAMICM iou_cost(std::vector<Track>& tracks,
+    cv::Mat iou_cost(std::vector<Track>& tracks,
                       const DETECTIONS& dets,
                       const std::vector<int>& track_indices,
                       const std::vector<int>& detection_indices);

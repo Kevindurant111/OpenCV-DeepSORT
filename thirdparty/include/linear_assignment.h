@@ -4,8 +4,7 @@
 #include "tracker.h"
 
 #define INFTY_COST 1e5
-class tracker;
-//for matching;
+
 class linear_assignment
 {
     linear_assignment();

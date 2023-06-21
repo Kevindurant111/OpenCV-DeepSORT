@@ -153,7 +153,7 @@ void tracker::_initiate_track(const DETECTION_ROW& detection) {
     _next_idx += 1;
 }
 
-DYNAMICM tracker::gated_matric(std::vector<Track>& tracks,
+cv::Mat tracker::gated_matric(std::vector<Track>& tracks,
                                const DETECTIONS& dets,
                                const std::vector<int>& track_indices,
                                const std::vector<int>& detection_indices) {
@@ -183,11 +183,16 @@ DYNAMICM tracker::gated_matric(std::vector<Track>& tracks,
     
     DYNAMICM res = linear_assignment::getInstance()->gate_cost_matrix(this->kf, cost_matrix, tracks, dets,
                                                                       track_indices, detection_indices);
-    return res;
+    cv::Mat _res(res.rows(), res.cols(), CV_32F);
+    for(int i = 0; i < res.rows(); i++) {
+        for(int j = 0; j < res.cols(); j++) {
+           _res.at<float>(i, j) = res(i, j); 
+        }
+    }
+    return _res;
 }
 
-DYNAMICM
-tracker::iou_cost(std::vector<Track>& tracks,
+cv::Mat tracker::iou_cost(std::vector<Track>& tracks,
                   const DETECTIONS& dets,
                   const std::vector<int>& track_indices,
                   const std::vector<int>& detection_indices) {
@@ -213,7 +218,13 @@ tracker::iou_cost(std::vector<Track>& tracks,
         Eigen::RowVectorXf rowV = (1. - iou(bbox, candidates).array()).matrix().transpose();
         cost_matrix.row(i) = rowV;
     }
-    return cost_matrix;
+    cv::Mat _cost_matrix(cost_matrix.rows(), cost_matrix.cols(), CV_32F);
+    for(int i = 0; i < cost_matrix.rows(); i++) {
+        for(int j = 0; j < cost_matrix.cols(); j++) {
+           _cost_matrix.at<float>(i, j) = cost_matrix(i, j); 
+        }
+    }
+    return _cost_matrix;
 }
 
 Eigen::VectorXf tracker::iou(DETECTBOX& bbox, DETECTBOXSS& candidates) {
