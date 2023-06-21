@@ -49,7 +49,8 @@ class tracker {
                       const DETECTIONS& dets,
                       const std::vector<int>& track_indices,
                       const std::vector<int>& detection_indices);
-    Eigen::VectorXf iou(DETECTBOX& bbox, DETECTBOXSS& candidates);
+    //Eigen::VectorXf iou(DETECTBOX& bbox, DETECTBOXSS& candidates);
+    cv::Mat iou(cv::Mat& bbox, cv::Mat& candidates);
 };
 
 #endif  // TRACKER_H
