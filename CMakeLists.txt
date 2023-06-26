@@ -45,11 +45,6 @@ if (${TARGET_ARCH} STREQUAL "pcie")
     include_directories(${LIBSOPHON_INCLUDE_DIRS})
     link_directories(${LIBSOPHON_LIB_DIRS})
 
-    # use Eigen
-    find_package(Eigen3 REQUIRED)
-    include_directories(${EIGEN3_INCLUDE_DIRS})
-    link_directories(${EIGEN3_LIB_DIRS})
-
     #link our own include and srcs
     include_directories("../../../../include/")
     include_sub_directories_recursively(${CMAKE_SOURCE_DIR})
@@ -69,7 +64,6 @@ elseif (${TARGET_ARCH} STREQUAL "soc")
     set(JPU_LIBS bmjpuapi bmjpulite)
     set(OPENCV_LIBS opencv_imgproc opencv_core opencv_highgui opencv_imgcodecs opencv_videoio)
     include_directories("../../../../include/")
-    include_directories(/usr/include/eigen3)
     include_sub_directories_recursively(${CMAKE_SOURCE_DIR})
     include_directories("../../../YOLOv5/cpp/yolov5_bmcv/")
     file(GLOB_RECURSE SRC_FILES "./thirdparty/*.cpp" "../../../YOLOv5/cpp/yolov5_bmcv/yolov5.cpp") # dont involve build/
