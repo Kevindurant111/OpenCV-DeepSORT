@@ -5,15 +5,13 @@
 #include <opencv2/opencv.hpp>
 using namespace std;
 
-// #define MY_inner_DEBUG
 #ifdef MY_inner_DEBUG
 #include <iostream>
 #include <string>
 #endif
 
 
-tracker::tracker(/*NearNeighborDisMetric *metric,*/
-                 float max_cosine_distance,
+tracker::tracker(float max_cosine_distance,
                  int nn_budget,
                  int k_feature_dim,
                  float max_iou_distance,
@@ -42,39 +40,23 @@ void tracker::predict() {
 }
 
 void tracker::update(const DETECTIONS& detections) {
-    TRACHER_MATCHD res;
+    TRACKER_MATCHD res;
     _match(detections, res);
 
     vector<MATCH_DATA>& matches = res.matches;
-    // #ifdef MY_inner_DEBUG
-    //     printf("res.matches size = %d:\n", matches.size());
-    // #endif
     for (MATCH_DATA& data : matches) {
         int track_idx = data.first;
         int detection_idx = data.second;
-        // #ifdef MY_inner_DEBUG
-        //         printf("\t%d == %d;\n", track_idx, detection_idx);
-        // #endif
         tracks[track_idx].update(this->kf, detections[detection_idx]);
     }
     vector<int>& unmatched_tracks = res.unmatched_tracks;
-    // #ifdef MY_inner_DEBUG
-    //     printf("res.unmatched_tracks size = %d\n", unmatched_tracks.size());
-    // #endif
     for (int& track_idx : unmatched_tracks) {
         this->tracks[track_idx].mark_missed();
     }
     vector<int>& unmatched_detections = res.unmatched_detections;
-    // #ifdef MY_inner_DEBUG
-    //     printf("res.unmatched_detections size = %d\n", unmatched_detections.size());
-    // #endif
     for (int& detection_idx : unmatched_detections) {
         this->_initiate_track(detections[detection_idx]);
     }
-    // #ifdef MY_inner_DEBUG
-    //     int size = tracks.size();
-    //     printf("now track size = %d\n", size);
-    // #endif
     vector<Track>::iterator it;
     for (it = tracks.begin(); it != tracks.end();) {
         if ((*it).is_deleted())
@@ -96,7 +78,7 @@ void tracker::update(const DETECTIONS& detections) {
     this->metric->partial_fit(tid_features, active_targets);
 }
 
-void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
+void tracker::_match(const DETECTIONS& detections, TRACKER_MATCHD& res) {
     vector<int> confirmed_tracks;
     vector<int> unconfirmed_tracks;
     int idx = 0;
@@ -108,7 +90,7 @@ void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
         idx++;
     }
 
-    TRACHER_MATCHD matcha =
+    TRACKER_MATCHD matcha =
         linear_assignment::getInstance()->matching_cascade(this, &tracker::gated_matric, this->metric->mating_threshold,
                                                            this->max_age, this->tracks, detections, confirmed_tracks);
     vector<int> iou_track_candidates;
@@ -123,7 +105,7 @@ void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
         }
         ++it;
     }
-    TRACHER_MATCHD matchb = linear_assignment::getInstance()->min_cost_matching(
+    TRACKER_MATCHD matchb = linear_assignment::getInstance()->min_cost_matching(
         this, &tracker::iou_cost, this->max_iou_distance, this->tracks, detections, iou_track_candidates,
         matcha.unmatched_detections);
     // get result:
@@ -137,7 +119,6 @@ void tracker::_match(const DETECTIONS& detections, TRACHER_MATCHD& res) {
 }
 
 void tracker::_initiate_track(const DETECTION_ROW& detection) {
-    // 改
     auto data = kf->initiate(detection.to_xyah());
     auto mean = data.first.clone();
     auto covariance = data.second.clone();
@@ -161,23 +142,10 @@ cv::Mat tracker::gated_matric(std::vector<Track>& tracks,
         targets.push_back(tracks[i].track_id);
     }
 
-    cv::Mat _cost_matrix = this->metric->distance(features, targets).clone();
-    DYNAMICM cost_matrix = Eigen::MatrixXf::Zero(_cost_matrix.rows, _cost_matrix.cols);
-    for(int i = 0; i < _cost_matrix.rows; i++) {
-        for(int j = 0; j < _cost_matrix.cols; j++) {
-            cost_matrix(i, j) = _cost_matrix.at<float>(i, j);
-        }
-    }
-    
-    DYNAMICM res = linear_assignment::getInstance()->gate_cost_matrix(this->kf, cost_matrix, tracks, dets,
+    cv::Mat cost_matrix = this->metric->distance(features, targets).clone();
+    cv::Mat res = linear_assignment::getInstance()->gate_cost_matrix(this->kf, cost_matrix, tracks, dets,
                                                                       track_indices, detection_indices);
-    cv::Mat _res(res.rows(), res.cols(), CV_32F);
-    for(int i = 0; i < res.rows(); i++) {
-        for(int j = 0; j < res.cols(); j++) {
-           _res.at<float>(i, j) = res(i, j); 
-        }
-    }
-    return _res;
+    return res;
 }
 
 cv::Mat tracker::iou_cost(std::vector<Track>& tracks,
@@ -197,21 +165,12 @@ cv::Mat tracker::iou_cost(std::vector<Track>& tracks,
         }
         cv::Mat bbox = tracks[track_idx].to_tlwh();
         int csize = detection_indices.size();
-        DETECTBOXSS candidates(csize, 4);
+        cv::Mat candidates(csize, 4, CV_32F);
         for (int k = 0; k < csize; k++) {
-            auto mat = dets[detection_indices[k]].tlwh;
-            for(int i = 0; i < candidates.cols(); i++) {
-                candidates(k, i) = mat.at<float>(i);
-            }
+            dets[detection_indices[k]].tlwh.copyTo(candidates.row(k));
         }
 
-        cv::Mat _candidates(candidates.rows(), candidates.cols(), CV_32F);
-        for(int i = 0; i < candidates.rows(); i++) {
-            for(int j = 0; j < candidates.cols(); j++) {
-                _candidates.at<float>(i, j) = candidates(i, j);
-            }
-        }
-        cv::Mat iouMat = iou(bbox, _candidates);
+        cv::Mat iouMat = iou(bbox, candidates);
         cv::Mat rowV = cv::Mat::ones(1, iouMat.rows, CV_32FC1) - iouMat.t();
         for (int j = 0; j < cols; j++) {
             _cost_matrix.at<float>(i, j) = rowV.at<float>(j);

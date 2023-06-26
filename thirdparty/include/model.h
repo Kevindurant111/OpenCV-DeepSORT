@@ -1,6 +1,7 @@
 #ifndef MODEL_H
 #define MODEL_H
 #include "dataType.h"
+#include <opencv2/opencv.hpp>
 
 // * Each rect's data structure.
 // * tlwh: topleft point & (w,h)

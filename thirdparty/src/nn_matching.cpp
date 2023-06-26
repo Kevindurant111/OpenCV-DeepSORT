@@ -2,11 +2,6 @@
 NearNeighborDisMetric::NearNeighborDisMetric(NearNeighborDisMetric::METRIC_TYPE metric,
                                              float matching_threshold,
                                              int budget, int k_feature_dim) {
-    // if (metric == euclidean) {
-    //     _metric = &NearNeighborDisMetric::_nneuclidean_distance;
-    // } else if (metric == cosine) {
-    //     _metric = &NearNeighborDisMetric::_nncosine_distance;
-    // }
     _metric = &NearNeighborDisMetric::_nncosine_distance;
 
     this->mating_threshold = matching_threshold;

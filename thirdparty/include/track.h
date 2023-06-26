@@ -1,7 +1,7 @@
 #ifndef TRACK_H
 #define TRACK_H
 
-#include "dataType.h"
+#include <opencv2/opencv.hpp>
 #include "kalmanfilter.h"
 #include "model.h"
 

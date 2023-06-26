@@ -72,9 +72,6 @@ int FeatureExtractor::pre_process(const bm_image& image, std::vector<bmcv_rect_t
     int image_n = crop_rects_batch.size();
     // 1. crop and resize image
     int ret = 0;
-    // std::cout<<image.width<<" "<<image.height<<std::endl;
-    // std::cout<< crop_rects_batch[0].start_x <<" "<< crop_rects_batch[0].start_y <<" "<<crop_rects_batch[0].crop_w <<"
-    // "<<crop_rects_batch[0].crop_h<<std::endl;
 #if 0
     bm_image crops[crop_rects_batch.size()];
     bmcv_resize_t resize_attr[crop_rects_batch.size()];

@@ -21,8 +21,7 @@ class tracker {
     int k_feature_dim;
    public:
     std::vector<Track> tracks;
-    tracker(/*NearNeighborDisMetric* metric,*/
-            float max_cosine_distance,
+    tracker(float max_cosine_distance,
             int nn_budget,
             int k_feature_dim, 
             float max_iou_distance = 0.7,
@@ -37,7 +36,7 @@ class tracker {
                                                    const std::vector<int>& detection_indices);
 
    private:
-    void _match(const DETECTIONS& detections, TRACHER_MATCHD& res);
+    void _match(const DETECTIONS& detections, TRACKER_MATCHD& res);
     void _initiate_track(const DETECTION_ROW& detection);
 
    public:
@@ -49,7 +48,6 @@ class tracker {
                       const DETECTIONS& dets,
                       const std::vector<int>& track_indices,
                       const std::vector<int>& detection_indices);
-    //Eigen::VectorXf iou(DETECTBOX& bbox, DETECTBOXSS& candidates);
     cv::Mat iou(cv::Mat& bbox, cv::Mat& candidates);
 };
 

@@ -42,14 +42,11 @@ void Track::predit(KalmanFilter* kf) {
 }
 
 void Track::update(KalmanFilter* const kf, const DETECTION_ROW& detection) {
-    // 改
     auto pa = kf->update(mean, covariance, detection.to_xyah());
-
     mean = pa.first.clone();
     covariance = pa.second.clone();    
 
     featuresAppendOne(detection.feature);
-    //    this->features.row(features.rows()) = detection.feature;
     this->hits += 1;
     this->time_since_update = 0;
     if (this->state == TrackState::Tentative && this->hits >= this->_n_init) {
