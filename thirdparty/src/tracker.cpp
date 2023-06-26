@@ -89,15 +89,9 @@ void tracker::update(const DETECTIONS& detections) {
         if (track.is_confirmed() == false)
             continue;
         active_targets.push_back(track.track_id);
-        cv::Mat _feature(track.features.rows(), track.features.cols(), CV_32F);
-        for(int i = 0; i < track.features.rows(); i++) {
-            for(int j = 0; j < track.features.cols(); j++) {
-                _feature.at<float>(i, j) = track.features(i, j);
-            }
-        }
-        tid_features.push_back(std::make_pair(track.track_id, _feature));
-        FEATURESS t = FEATURESS(0, k_feature_dim);
-        track.features = t;
+        tid_features.push_back(std::make_pair(track.track_id, track.features));
+        cv::Mat t(0, k_feature_dim, CV_32F);
+        track.features = t.clone();
     }
     this->metric->partial_fit(tid_features, active_targets);
 }
@@ -157,23 +151,17 @@ cv::Mat tracker::gated_matric(std::vector<Track>& tracks,
                                const DETECTIONS& dets,
                                const std::vector<int>& track_indices,
                                const std::vector<int>& detection_indices) {
-    FEATURESS features(detection_indices.size(), k_feature_dim);
+    cv::Mat features(detection_indices.size(), k_feature_dim, CV_32F);
     int pos = 0;
     for (int i : detection_indices) {
-        features.row(pos++) = dets[i].feature;
+        dets[i].feature.copyTo(features.row(pos++));
     }
     vector<int> targets;
     for (int i : track_indices) {
         targets.push_back(tracks[i].track_id);
     }
-    cv::Mat _feature(features.rows(), features.cols(), CV_32F);
-    for(int i = 0; i < features.rows(); i++) {
-        for(int j = 0; j < features.cols(); j++) {
-            _feature.at<float>(i, j) = features(i, j);
-        }
-    }
 
-    cv::Mat _cost_matrix = this->metric->distance(_feature, targets).clone();
+    cv::Mat _cost_matrix = this->metric->distance(features, targets).clone();
     DYNAMICM cost_matrix = Eigen::MatrixXf::Zero(_cost_matrix.rows, _cost_matrix.cols);
     for(int i = 0; i < _cost_matrix.rows; i++) {
         for(int j = 0; j < _cost_matrix.cols; j++) {
@@ -258,35 +246,4 @@ cv::Mat tracker::iou(cv::Mat& bbox, cv::Mat& candidates) {
     return res;
 }
 
-// Eigen::VectorXf tracker::iou(DETECTBOX& bbox, DETECTBOXSS& candidates) {
-//     float bbox_tl_1 = bbox[0];
-//     float bbox_tl_2 = bbox[1];
-//     float bbox_br_1 = bbox[0] + bbox[2];
-//     float bbox_br_2 = bbox[1] + bbox[3];
-//     float area_bbox = bbox[2] * bbox[3];
 
-//     Eigen::Matrix<float, -1, 2> candidates_tl;
-//     Eigen::Matrix<float, -1, 2> candidates_br;
-//     candidates_tl = candidates.leftCols(2);
-//     candidates_br = candidates.rightCols(2) + candidates_tl;
-
-//     int size = int(candidates.rows());
-//     //    Eigen::VectorXf area_intersection(size);
-//     //    Eigen::VectorXf area_candidates(size);
-//     Eigen::VectorXf res(size);
-//     for (int i = 0; i < size; i++) {
-//         float tl_1 = std::max(bbox_tl_1, candidates_tl(i, 0));
-//         float tl_2 = std::max(bbox_tl_2, candidates_tl(i, 1));
-//         float br_1 = std::min(bbox_br_1, candidates_br(i, 0));
-//         float br_2 = std::min(bbox_br_2, candidates_br(i, 1));
-
-//         float w = br_1 - tl_1;
-//         w = (w < 0 ? 0 : w);
-//         float h = br_2 - tl_2;
-//         h = (h < 0 ? 0 : h);
-//         float area_intersection = w * h;
-//         float area_candidates = candidates(i, 2) * candidates(i, 3);
-//         res[i] = area_intersection / (area_bbox + area_candidates - area_intersection);
-//     }
-//     return res;
-// }

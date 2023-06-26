@@ -60,7 +60,7 @@ class Track {
           int class_id,
           int n_init,
           int max_age,
-          const FEATURE& feature,
+          const cv::Mat& features,
           int k_feature_dim);
     void predit(KalmanFilter* kf);
     void update(KalmanFilter* const kf, const DETECTION_ROW& detection);
@@ -73,7 +73,7 @@ class Track {
     int track_id;
     int class_id;
     int k_feature_dim;
-    FEATURESS features;
+    cv::Mat features;
     cv::Mat mean;
     cv::Mat covariance;
 
@@ -84,7 +84,7 @@ class Track {
     TrackState state;
 
    private:
-    void featuresAppendOne(const FEATURE& f);
+    void featuresAppendOne(const cv::Mat& f);
 };
 
 #endif  // TRACK_H

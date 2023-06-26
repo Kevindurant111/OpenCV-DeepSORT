@@ -7,7 +7,7 @@ Track::Track(const cv::Mat& mean,
              int class_id,
              int n_init,
              int max_age,
-             const FEATURE& feature,
+             const cv::Mat& features,
              int k_feature_dim) {
     this->mean = mean.clone();
     this->covariance = covariance.clone();
@@ -17,9 +17,7 @@ Track::Track(const cv::Mat& mean,
     this->age = 1;
     this->time_since_update = 0;
     this->state = TrackState::Tentative;
-    features = FEATURESS(1, k_feature_dim);
-    features.row(0).resize(k_feature_dim);
-    features.row(0) = feature;  // features.rows() must = 0;
+    this->features = features.clone();
     this->k_feature_dim = k_feature_dim;
     this->_n_init = n_init;
     this->_max_age = max_age;
@@ -87,10 +85,12 @@ cv::Mat Track::to_tlwh() {
     return ret;
 }
 
-void Track::featuresAppendOne(const FEATURE& f) {
-    int size = this->features.rows();
-    FEATURESS newfeatures = FEATURESS(size + 1, k_feature_dim);
-    newfeatures.block(0, 0, size, k_feature_dim) = this->features;
-    newfeatures.row(size) = f;
-    features = newfeatures;
+void Track::featuresAppendOne(const cv::Mat& f) {
+    int size = features.rows;
+    cv::Mat newFeatures(size + 1, k_feature_dim, f.type());
+    cv::Mat roiNewFeatures(newFeatures, cv::Rect(0, 0, k_feature_dim, size));
+    features.copyTo(roiNewFeatures);
+    cv::Mat roiNewFeaturesLastRow(newFeatures, cv::Rect(0, size, k_feature_dim, 1));
+    f.copyTo(roiNewFeaturesLastRow);
+    features = newFeatures;
 }

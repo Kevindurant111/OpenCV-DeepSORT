@@ -12,7 +12,7 @@ class DETECTION_ROW {
     cv::Mat tlwh;
     float confidence;
     int class_id;
-    FEATURE feature;
+    cv::Mat feature;
     cv::Mat to_xyah() const;
     cv::Mat to_tlbr() const;
 };

@@ -190,15 +190,9 @@ int FeatureExtractor::post_process(DETECTIONS& det, int start, int crop_size) {
     // auto stream = m_bmNetwork->outputTensor(0)->get_cpu_data(); //why this code has bug?
 
     for (int i = start; i < start + crop_size; i++) {
-        det[i].feature.resize(1, k_feature_dim);
-        memcpy(det[i].feature.data(), m_bmNetwork->outputTensor(0)->get_cpu_data() + (i - start) * k_feature_dim,
+        det[i].feature = cv::Mat(1, k_feature_dim, CV_32F);
+        memcpy(det[i].feature.data, m_bmNetwork->outputTensor(0)->get_cpu_data() + (i - start) * k_feature_dim,
                k_feature_dim * sizeof(float));
-        // for (int j = 0; j < k_feature_dim; j++)
-        // {
-        //     // det[i].feature[j] = *(m_bmNetwork->outputTensor(0)->get_cpu_data() + (i - start) * k_feature_dim + j);
-        //     //     det[i].feature[j] = stream[(i - start) * k_feature_dim + j];
-        //     std::cout << det[i].feature[j] << " ";
-        // }
     }
     // std::cout << std::endl;
     return 0;
