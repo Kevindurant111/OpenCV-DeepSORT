@@ -64,8 +64,8 @@ void DeepSort::sort(bm_image& frame, vector<YoloV5Box>& dets, vector<TrackBox>& 
                 if(frame_id == 276) {
                     std::cout << "结果检查：" << std::endl;
                     std::cout << "--------------------" << idx << std::endl;
-                    std::cout << k(0) << " " << k(1)<< " "<< k(2)<< " "<< k(3)<< " "<< track.class_id<< " "<< track.track_id<<std::endl;
-                    std::string cmp = std::to_string(int(k(0)))+std::to_string(int(k(1)))+std::to_string(int(k(2)))+std::to_string(int(k(3)))+std::to_string(track.class_id)+std::to_string(track.track_id);
+                    std::cout << k.at<float>(0) << " " << k.at<float>(1)<< " "<< k.at<float>(2)<< " "<< k.at<float>(3)<< " "<< track.class_id<< " "<< track.track_id<<std::endl;
+                    std::string cmp = std::to_string(int(k.at<float>(0)))+std::to_string(int(k.at<float>(1)))+std::to_string(int(k.at<float>(2)))+std::to_string(int(k.at<float>(3)))+std::to_string(track.class_id)+std::to_string(track.track_id);
                     if(idx == 1) {
                         if(cmp != "111433619748702") {
                             std::cout << "比对错误！";
@@ -122,7 +122,7 @@ void DeepSort::sort(bm_image& frame, vector<YoloV5Box>& dets, vector<TrackBox>& 
                     }
                     idx++;
                 }
-                TrackBox tmp(k(0), k(1), k(2), k(3), 1., track.class_id, track.track_id);
+                TrackBox tmp(k.at<float>(0), k.at<float>(1), k.at<float>(2), k.at<float>(3), 1., track.class_id, track.track_id);
                 track_boxs.push_back(tmp);
             }
         }

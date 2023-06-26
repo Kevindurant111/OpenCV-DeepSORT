@@ -79,16 +79,11 @@ bool Track::is_tentative() {
     return this->state == TrackState::Tentative;
 }
 
-DETECTBOX Track::to_tlwh() {
-    KAL_MEAN mean_;
-    for(int i = 0; i < mean_.rows(); i++) {
-        for(int j = 0; j < mean_.cols(); j++) {
-            mean_(i, j) = mean.at<float>(i, j);
-        }
-    }
-    DETECTBOX ret = mean_.leftCols(4);
-    ret(2) *= ret(3);
-    ret.leftCols(2) -= (ret.rightCols(2) / 2);
+cv::Mat Track::to_tlwh() {
+    cv::Mat ret = mean.clone();
+    ret.at<float>(2) *= ret.at<float>(3);
+    ret.at<float>(0) -= (ret.at<float>(2) / 2);
+    ret.at<float>(1) -= (ret.at<float>(3) / 2);
     return ret;
 }
 

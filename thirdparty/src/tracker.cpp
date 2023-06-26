@@ -207,7 +207,7 @@ cv::Mat tracker::iou_cost(std::vector<Track>& tracks,
             }
             continue;
         }
-        DETECTBOX bbox = tracks[track_idx].to_tlwh();
+        cv::Mat bbox = tracks[track_idx].to_tlwh();
         int csize = detection_indices.size();
         DETECTBOXSS candidates(csize, 4);
         for (int k = 0; k < csize; k++) {
@@ -217,19 +217,13 @@ cv::Mat tracker::iou_cost(std::vector<Track>& tracks,
             }
         }
 
-        cv::Mat _bbox(bbox.rows(), bbox.cols(), CV_32F);
         cv::Mat _candidates(candidates.rows(), candidates.cols(), CV_32F);
-        for(int i = 0; i < bbox.rows(); i++) {
-            for(int j = 0; j < bbox.cols(); j++) {
-                _bbox.at<float>(i, j) = bbox(i, j);
-            }
-        }
         for(int i = 0; i < candidates.rows(); i++) {
             for(int j = 0; j < candidates.cols(); j++) {
                 _candidates.at<float>(i, j) = candidates(i, j);
             }
         }
-        cv::Mat iouMat = iou(_bbox, _candidates);
+        cv::Mat iouMat = iou(bbox, _candidates);
         cv::Mat rowV = cv::Mat::ones(1, iouMat.rows, CV_32FC1) - iouMat.t();
         for (int j = 0; j < cols; j++) {
             _cost_matrix.at<float>(i, j) = rowV.at<float>(j);

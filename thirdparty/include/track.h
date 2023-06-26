@@ -68,7 +68,7 @@ class Track {
     bool is_confirmed();
     bool is_deleted();
     bool is_tentative();
-    DETECTBOX to_tlwh();
+    cv::Mat to_tlwh();
     int time_since_update;
     int track_id;
     int class_id;
